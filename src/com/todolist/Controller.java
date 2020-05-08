@@ -4,6 +4,8 @@ import com.todolist.datamodel.TodoData;
 import com.todolist.datamodel.TodoItem;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 
@@ -31,8 +33,24 @@ public class Controller {
     private Label deadlineLabel;
     @FXML
     private BorderPane mainBorderPane;
+    @FXML
+    private ContextMenu listContextMenu;
 
     public void initialize() {
+
+        listContextMenu = new ContextMenu();
+        MenuItem deleteMenuItem = new MenuItem("Delete");
+
+        deleteMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                TodoItem item = todoListView.getSelectionModel().getSelectedItem();
+                deleteItem(item);
+            }
+        });
+
+        listContextMenu.getItems().addAll(deleteMenuItem);
+
 
         todoListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<TodoItem>() {
             @Override
@@ -53,22 +71,32 @@ public class Controller {
         todoListView.setCellFactory(new Callback<ListView<TodoItem>, ListCell<TodoItem>>() {
             @Override
             public ListCell<TodoItem> call(ListView<TodoItem> param) {
-                    ListCell<TodoItem> cell = new ListCell<TodoItem>(){
-                        @Override
-                        protected void updateItem(TodoItem item, boolean empty) {
-                            super.updateItem(item, empty);
-                            if (empty) {
-                                setText(null);
-                            } else {
-                                setText(item.getShortDescription());
-                                if (item.getDeadline().isBefore(LocalDate.now().plusDays(1))) {
-                                    setTextFill(Color.RED);
-                                } else if (item.getDeadline().equals(LocalDate.now().plusDays(1))) {
-                                    setTextFill(Color.ORANGE);
-                                }
+                ListCell<TodoItem> cell = new ListCell<TodoItem>() {
+                    @Override
+                    protected void updateItem(TodoItem item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty) {
+                            setText(null);
+                        } else {
+                            setText(item.getShortDescription());
+                            if (item.getDeadline().isBefore(LocalDate.now().plusDays(1))) {
+                                setTextFill(Color.RED);
+                            } else if (item.getDeadline().equals(LocalDate.now().plusDays(1))) {
+                                setTextFill(Color.ORANGE);
                             }
                         }
-                    };
+                    }
+                };
+
+                cell.emptyProperty().addListener(
+                        (obs, wasEmpty, isNowEmpty) -> {
+                            if (isNowEmpty) {
+                                cell.setContextMenu(null);
+                            } else {
+                                cell.setContextMenu(listContextMenu);
+                            }
+                        }
+                );
 
 
                 return cell;
@@ -85,10 +113,9 @@ public class Controller {
         dialog.setHeaderText("Create new item");
         FXMLLoader fxmlLoader = new FXMLLoader();
         fxmlLoader.setLocation(getClass().getResource("todoItemDialog.fxml"));
+
         try {
-
             dialog.getDialogPane().setContent(fxmlLoader.load());
-
         } catch (IOException e) {
             System.out.println("Couldn't load dialog");
             e.printStackTrace();
@@ -120,6 +147,19 @@ public class Controller {
         sb.append(item.getDeadline().toString());
         itemDetailsTextArea.setText(sb.toString());
 
+
+    }
+
+    public void deleteItem(TodoItem item) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete todo item");
+        alert.setHeaderText("Delete item: " + item.getShortDescription());
+        alert.setContentText("Press OK to confirm, or CANCEL to back out");
+        Optional<ButtonType> result = alert.showAndWait();
+
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            TodoData.getInstance().deleteTodoItem(item);
+        }
 
     }
 

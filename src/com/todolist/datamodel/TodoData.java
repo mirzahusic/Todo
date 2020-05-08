@@ -18,7 +18,6 @@ public class TodoData {
 
     private static TodoData instance = new TodoData();
     private static String filename = "TodoListItems.txt";
-
     private ObservableList<TodoItem> todoItems;
     private DateTimeFormatter formatter;
 
@@ -94,6 +93,10 @@ public class TodoData {
     public void addTodoItem(TodoItem item){
         todoItems.add(item);
 
+    }
+
+    public  void deleteTodoItem (TodoItem item){
+        todoItems.remove(item);
     }
 
 
